@@ -42,7 +42,7 @@ describe Mongoid::Fields do
       end
 
       it "does not return subclass defaults" do
-        @shape.defaults.should == { "x" => 0, "y" => 0 }
+        @shape.defaults.should == { "x" => 0, "_y" => 0 }
       end
 
     end
@@ -54,7 +54,7 @@ describe Mongoid::Fields do
       end
 
       it "has the parent and child defaults" do
-        @circle.defaults.should == { "x" => 0, "y" => 0, "radius" => 0 }
+        @circle.defaults.should == { "x" => 0, "_y" => 0, "radius" => 0 }
       end
 
     end
@@ -166,7 +166,7 @@ describe Mongoid::Fields do
 
       it "does not return subclass fields" do
         @shape.fields.keys.should include("x")
-        @shape.fields.keys.should include("y")
+        @shape.fields.keys.should include("_y")
         @shape.fields.keys.should_not include("radius")
       end
 
@@ -180,7 +180,7 @@ describe Mongoid::Fields do
 
       it "has the parent and child fields" do
         @circle.fields.keys.should include("x")
-        @circle.fields.keys.should include("y")
+        @circle.fields.keys.should include("_y")
         @circle.fields.keys.should include("radius")
       end
 

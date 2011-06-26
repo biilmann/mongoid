@@ -117,9 +117,10 @@ module Mongoid #:nodoc
     #
     # The Mongoid +Config+ singleton instance.
     def configure
-      config = Mongoid::Config.instance
+      config = Mongoid::Config
       block_given? ? yield(config) : config
     end
+    alias :config :configure
 
     # Easy convenience method for generating an alert from the
     # deprecation module.
