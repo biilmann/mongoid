@@ -38,6 +38,149 @@ require "active_model/serialization"
 require "active_model/translation"
 require "active_model/validator"
 require "active_model/validations"
+
+# ********************************************************************************
+# We're including the class attribute methods from activesupport 3.1.0
+# to make our version of Mongoid work with newer rails versions
+# ********************************************************************************
+class Class # :nodoc:
+  def class_inheritable_reader(*syms)
+    options = syms.extract_options!
+    syms.each do |sym|
+      next if sym.is_a?(Hash)
+      class_eval(<<-EOS, __FILE__, __LINE__ + 1)
+        def self.#{sym}                                # def self.after_add
+          read_inheritable_attribute(:#{sym})          #   read_inheritable_attribute(:after_add)
+        end                                            # end
+                                                       #
+        #{"                                            #
+        def #{sym}                                     # def after_add
+          self.class.#{sym}                            #   self.class.after_add
+        end                                            # end
+        " unless options[:instance_reader] == false }  # # the reader above is generated unless options[:instance_reader] == false
+      EOS
+    end
+  end
+
+  def class_inheritable_writer(*syms)
+    options = syms.extract_options!
+    syms.each do |sym|
+      class_eval(<<-EOS, __FILE__, __LINE__ + 1)
+        def self.#{sym}=(obj)                          # def self.color=(obj)
+          write_inheritable_attribute(:#{sym}, obj)    #   write_inheritable_attribute(:color, obj)
+        end                                            # end
+                                                       #
+        #{"                                            #
+        def #{sym}=(obj)                               # def color=(obj)
+          self.class.#{sym} = obj                      #   self.class.color = obj
+        end                                            # end
+        " unless options[:instance_writer] == false }  # # the writer above is generated unless options[:instance_writer] == false
+      EOS
+    end
+  end
+
+  def class_inheritable_array_writer(*syms)
+    options = syms.extract_options!
+    syms.each do |sym|
+      class_eval(<<-EOS, __FILE__, __LINE__ + 1)
+        def self.#{sym}=(obj)                          # def self.levels=(obj)
+          write_inheritable_array(:#{sym}, obj)        #   write_inheritable_array(:levels, obj)
+        end                                            # end
+                                                       #
+        #{"                                            #
+        def #{sym}=(obj)                               # def levels=(obj)
+          self.class.#{sym} = obj                      #   self.class.levels = obj
+        end                                            # end
+        " unless options[:instance_writer] == false }  # # the writer above is generated unless options[:instance_writer] == false
+      EOS
+    end
+  end
+
+  def class_inheritable_hash_writer(*syms)
+    options = syms.extract_options!
+    syms.each do |sym|
+      class_eval(<<-EOS, __FILE__, __LINE__ + 1)
+        def self.#{sym}=(obj)                          # def self.nicknames=(obj)
+          write_inheritable_hash(:#{sym}, obj)         #   write_inheritable_hash(:nicknames, obj)
+        end                                            # end
+                                                       #
+        #{"                                            #
+        def #{sym}=(obj)                               # def nicknames=(obj)
+          self.class.#{sym} = obj                      #   self.class.nicknames = obj
+        end                                            # end
+        " unless options[:instance_writer] == false }  # # the writer above is generated unless options[:instance_writer] == false
+      EOS
+    end
+  end
+
+  def class_inheritable_accessor(*syms)
+    class_inheritable_reader(*syms)
+    class_inheritable_writer(*syms)
+  end
+
+  def class_inheritable_array(*syms)
+    class_inheritable_reader(*syms)
+    class_inheritable_array_writer(*syms)
+  end
+
+  def class_inheritable_hash(*syms)
+    class_inheritable_reader(*syms)
+    class_inheritable_hash_writer(*syms)
+  end
+
+  def inheritable_attributes
+    @inheritable_attributes ||= EMPTY_INHERITABLE_ATTRIBUTES
+  end
+
+  def write_inheritable_attribute(key, value)
+    if inheritable_attributes.equal?(EMPTY_INHERITABLE_ATTRIBUTES)
+      @inheritable_attributes = {}
+    end
+    inheritable_attributes[key] = value
+  end
+
+  def write_inheritable_array(key, elements)
+    write_inheritable_attribute(key, []) if read_inheritable_attribute(key).nil?
+    write_inheritable_attribute(key, read_inheritable_attribute(key) + elements)
+  end
+
+  def write_inheritable_hash(key, hash)
+    write_inheritable_attribute(key, {}) if read_inheritable_attribute(key).nil?
+    write_inheritable_attribute(key, read_inheritable_attribute(key).merge(hash))
+  end
+
+  def read_inheritable_attribute(key)
+    inheritable_attributes[key]
+  end
+
+  def reset_inheritable_attributes
+    @inheritable_attributes = EMPTY_INHERITABLE_ATTRIBUTES
+  end
+
+  private
+    # Prevent this constant from being created multiple times
+    EMPTY_INHERITABLE_ATTRIBUTES = {}.freeze
+
+    def inherited_with_inheritable_attributes(child)
+      inherited_without_inheritable_attributes(child) if respond_to?(:inherited_without_inheritable_attributes)
+
+      if inheritable_attributes.equal?(EMPTY_INHERITABLE_ATTRIBUTES)
+        new_inheritable_attributes = EMPTY_INHERITABLE_ATTRIBUTES
+      else
+        new_inheritable_attributes = Hash[inheritable_attributes.map do |(key, value)|
+          [key, value.duplicable? ? value.dup : value]
+        end]
+      end
+
+      child.instance_variable_set('@inheritable_attributes', new_inheritable_attributes)
+    end
+
+    alias inherited_without_inheritable_attributes inherited
+    alias inherited inherited_with_inheritable_attributes
+end
+
+
+
 require "will_paginate/collection"
 require "mongo"
 require "mongoid/errors"

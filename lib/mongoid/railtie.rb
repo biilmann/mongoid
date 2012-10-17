@@ -10,7 +10,20 @@ module Rails #:nodoc:
   module Mongoid #:nodoc:
     class Railtie < Rails::Railtie #:nodoc:
 
-      config.generators.orm :mongoid, :migration => false
+      # Determine which generator to use. app_generators was introduced after
+      # 3.0.0.
+      #
+      # @example Get the generators method.
+      #   railtie.generators
+      #
+      # @return [ Symbol ] The method name to use.
+      #
+      # @since 2.0.0.rc.4
+      def self.generator
+        config.respond_to?(:app_generators) ? :app_generators : :generators
+      end
+
+      config.send(generator).orm :mongoid, :migration => false
 
       rake_tasks do
         load "mongoid/railties/database.rake"
