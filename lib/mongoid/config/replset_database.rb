@@ -17,7 +17,8 @@ module Mongoid #:nodoc:
         #yes, construction is weird but the driver wants "A list of host-port pairs ending with a hash containing any options"
         #mongo likes symbols
         options = self.inject({}) { |memo, (k, v)| memo[k.to_sym] = v; memo}
-        connection = Mongo::ReplSetConnection.new(*(self['hosts'] << options))
+        connection = Mongo::MongoReplicaSetClient.new(self['hosts'], options)
+        #Mongo::ReplSetConnection.new(*(self['hosts'] << options))
         [ connection.db(self['database']), nil ]
       end
 
@@ -43,7 +44,7 @@ module Mongoid #:nodoc:
       def initialize(options = {})
         merge!(options)
       end
-      
+
     end
   end
 end
